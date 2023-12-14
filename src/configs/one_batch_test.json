@@ -11,13 +11,50 @@
     "log_spec": true
   },
   "arch": {
-    "type": "BaselineModel",
+    "type": "RawNet2",
     "args": {
-      "n_feats": 128,
-      "fc_hidden": 512
     }
   },
   "data": {
+    "train": {
+      "batch_size": 10,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "ASVSpoofDataset",
+          "args": {
+            "part": "LA", 
+            "split": "train"
+          }
+        }
+      ]
+    },
+    "dev": {
+      "batch_size": 10,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "ASVSpoofDataset",
+          "args": {
+            "part": "LA", 
+            "split": "dev"
+          }
+        }
+      ]
+    },
+    "eval": {
+      "batch_size": 10,
+      "num_workers": 0,
+      "datasets": [
+        {
+          "type": "ASVSpoofDataset",
+          "args": {
+            "part": "LA", 
+            "split": "eval"
+          }
+        }
+      ]
+    }
   },
   "optimizer": {
     "type": "SGD",
@@ -26,17 +63,22 @@
     }
   },
   "loss": {
+    "type": "CrossEntropyLoss",
+    "args": {
+    }
   },
   "metrics": [
+    {
+      "type": "EER",
+      "args": {
+        "name": "EER"
+      }
+    }
   ],
   "lr_scheduler": {
-    "type": "OneCycleLR",
+    "type": "ExponentialLR",
     "args": {
-      "steps_per_epoch": 100,
-      "epochs": 50,
-      "anneal_strategy": "cos",
-      "max_lr": 1e-2,
-      "pct_start": 0.2
+      "gamma": 1
     }
   },
   "trainer": {

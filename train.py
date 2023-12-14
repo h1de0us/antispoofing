@@ -41,6 +41,10 @@ def main(config):
 
     # get function handles of loss and metrics
     loss_module = config.init_obj(config["loss"], module_loss).to(device)
+
+    # ugly hardcoding
+    loss_module = torch.nn.CrossEntropyLoss(weight=torch.tensor([0.9, 0.1]))
+
     metrics = [
         config.init_obj(metric_dict, module_metric)
         for metric_dict in config["metrics"]
