@@ -6,4 +6,4 @@ class EER(BaseMetric):
         super().__init__(*args, **kwargs)
 
     def __call__(self, bonafide_scores, other_scores, **batch):
-        return compute_eer(bonafide_scores.detach().numpy(), other_scores.detach().numpy())[0]
+        return compute_eer(bonafide_scores.detach().cpu().numpy(), other_scores.detach().cpu().numpy())[0]
