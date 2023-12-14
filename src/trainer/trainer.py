@@ -14,6 +14,8 @@ from src.base import BaseTrainer
 from src.logger.utils import plot_spectrogram_to_buf
 from src.utils import inf_loop, MetricTracker
 
+from src.model import RawNet2
+
 
 class Trainer(BaseTrainer):
     """
@@ -61,6 +63,15 @@ class Trainer(BaseTrainer):
             clip_grad_norm_(
                 self.model.parameters(), self.config["trainer"]["grad_norm_clip"]
             )
+
+    @staticmethod
+    def move_batch_to_device(batch, device: torch.device):
+        """
+        Move all necessary tensors to the HPU
+        """
+        for tensor_for_gpu in ["audios", "labels"]:
+            batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
+        return batch
 
     def _train_epoch(self, epoch):
         """
@@ -118,6 +129,7 @@ class Trainer(BaseTrainer):
         return log
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
+        batch = self.move_batch_to_device(batch, self.device)
         if is_train:
             self.optimizer.zero_grad()
         outputs = self.model(batch['audios'])
@@ -128,6 +140,8 @@ class Trainer(BaseTrainer):
         if is_train:
             batch["loss"].backward()
             self._clip_grad_norm()
+            if isinstance(self.model, RawNet2):
+                self.model.sinc.zero_grad()
             self.optimizer.step()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()

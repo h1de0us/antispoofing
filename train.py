@@ -43,7 +43,7 @@ def main(config):
     loss_module = config.init_obj(config["loss"], module_loss).to(device)
 
     # ugly hardcoding
-    loss_module = torch.nn.CrossEntropyLoss(weight=torch.tensor([0.9, 0.1]))
+    loss_module = torch.nn.CrossEntropyLoss(weight=torch.tensor([0.9, 0.1])).to(device)
 
     metrics = [
         config.init_obj(metric_dict, module_metric)
