@@ -140,8 +140,8 @@ class Trainer(BaseTrainer):
         if is_train:
             batch["loss"].backward()
             self._clip_grad_norm()
-            if isinstance(self.model, RawNet2):
-                self.model.sinc.zero_grad()
+            # if isinstance(self.model, RawNet2):
+            #     self.model.sinc.zero_grad()
             self.optimizer.step()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
