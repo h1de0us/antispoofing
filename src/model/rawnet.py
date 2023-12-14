@@ -222,8 +222,8 @@ class RawNet2(nn.Module):
         x = self.fc(x[:, -1, :])
         # x = F.softmax(x, dim=1)
         return {
-            "bonafide_scores": x[:, 0],
-            "other_scores": x[:, 1],
+            "bonafide_scores": x[:, 1],
+            "other_scores": x[:, 0],
             "logits": x
         }
 
