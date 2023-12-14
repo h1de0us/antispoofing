@@ -17,8 +17,8 @@
   },
   "data": {
     "train": {
-      "batch_size": 10,
-      "num_workers": 0,
+      "batch_size": 32,
+      "num_workers": 5,
       "datasets": [
         {
           "type": "ASVSpoofDataset",
@@ -30,8 +30,8 @@
       ]
     },
     "dev": {
-      "batch_size": 10,
-      "num_workers": 0,
+      "batch_size": 32,
+      "num_workers": 5,
       "datasets": [
         {
           "type": "ASVSpoofDataset",
@@ -43,8 +43,8 @@
       ]
     },
     "eval": {
-      "batch_size": 10,
-      "num_workers": 0,
+      "batch_size": 32,
+      "num_workers": 5,
       "datasets": [
         {
           "type": "ASVSpoofDataset",
@@ -57,9 +57,10 @@
     }
   },
   "optimizer": {
-    "type": "SGD",
+    "type": "Adam",
     "args": {
-      "lr": 1e-2
+      "lr": 0.0001,
+      "weight_decay": 0.0001
     }
   },
   "loss": {
@@ -82,15 +83,15 @@
     }
   },
   "trainer": {
-    "epochs": 50,
+    "epochs": 100,
     "save_dir": "saved/",
-    "save_period": 5,
+    "save_period": 20,
     "verbosity": 2,
-    "monitor": "min val_loss",
+    "monitor": "min loss_eval",
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "antispoofing",
-    "len_epoch": 100,
+    "len_epoch": 1500,
     "grad_norm_clip": 10
   }
 }

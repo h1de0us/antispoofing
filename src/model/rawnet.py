@@ -220,7 +220,7 @@ class RawNet2(nn.Module):
             x = F.leaky_relu(x, negative_slope=0.3)
         x, _ = self.GRU(x.view(x.shape[0], -1, x.shape[1]))
         x = self.fc(x[:, -1, :])
-        x = F.softmax(x, dim=1)
+        # x = F.softmax(x, dim=1)
         return {
             "bonafide_scores": x[:, 0],
             "other_scores": x[:, 1],
