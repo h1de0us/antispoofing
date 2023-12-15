@@ -83,6 +83,9 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
+        bonafide_scores = None # torch.tensor([]).unsqueeze(0)
+        other_scores = None # torch.tensor([]).unsqueeze(0)
+
         for batch_idx, batch in enumerate(
                 tqdm(self.train_dataloader, desc="train", total=self.len_epoch)
         ):
@@ -102,6 +105,14 @@ class Trainer(BaseTrainer):
                     continue
                 else:
                     raise e
+            if bonafide_scores is None:
+                bonafide_scores = batch["bonafide_scores"].unsqueeze(0)
+            else:
+                bonafide_scores = torch.cat([bonafide_scores, batch["bonafide_scores"].unsqueeze(0)], dim=0)
+            if other_scores is None:
+                other_scores = batch["other_scores"].unsqueeze(0)
+            else:
+                other_scores = torch.cat([other_scores, batch["other_scores"].unsqueeze(0)], dim=0)
             self.train_metrics.update("grad norm", self.get_grad_norm())
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
@@ -121,6 +132,9 @@ class Trainer(BaseTrainer):
             if batch_idx >= self.len_epoch:
                 break
         log = last_train_metrics
+        for met in self.train_metrics:
+            log.update(met.name, met(bonafide_scores.flatten(), other_scores.flatten()))
+
 
         for part, dataloader in self.evaluation_dataloaders.items():
             val_log = self._evaluation_epoch(epoch, part, dataloader)
@@ -147,8 +161,8 @@ class Trainer(BaseTrainer):
                 self.lr_scheduler.step()
 
         metrics.update("loss", batch["loss"].item())
-        for met in self.metrics:
-            metrics.update(met.name, met(**batch))
+        # for met in self.metrics:
+        #     metrics.update(met.name, met(**batch))
         return batch
 
     def _evaluation_epoch(self, epoch, part, dataloader):
