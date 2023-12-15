@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torchaudio
 
 
 # https://arxiv.org/abs/1511.02683
@@ -21,13 +22,19 @@ class Flattener(nn.Module):
 
 
 class LCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, 
+                 frontend=1):
         super().__init__()
+
+        if frontend == 1:
+            self.frontend = torchaudio.transforms.Spectrogram() # STFT
+        else: 
+            self.frontend = torchaudio.transforms.LFCC()
+
 
         # for more info about magic numbers see original paper: https://arxiv.org/pdf/1904.05576.pdf
         # not sure about the number of in_channels
         # (B, C, H, W)
-        # TODO: paddings and dilations?
         self.layers = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=(5, 5), stride=(1, 1)),
             MFM(out_channels=32),
@@ -47,25 +54,26 @@ class LCNN(nn.Module):
             nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=(1, 1)),
             MFM(out_channels=64),
-            nn.BatchNorm(num_features=64),
+            nn.BatchNorm2d(num_features=64),
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=(1, 1)),
             MFM(out_channels=32),
-            nn.BatchNorm(num_features=32),
+            nn.BatchNorm2d(num_features=32),
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(1, 1), stride=(1, 1)),
             MFM(out_channels=32),
-            nn.BatchNorm(num_features=32),
+            nn.BatchNorm2d(num_features=32),
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=(1, 1)),
             MFM(out_channels=32),
             nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             Flattener(),
             nn.Linear(in_features=53*37*32, out_features=160),
             MFM(out_channels=80),
-            nn.BatchNorm(num_features=80),
+            nn.BatchNorm1d(num_features=80),
             nn.Linear(in_features=80, out_features=2)
         )
 
     def forward(self, x):
-        return self.layers(x)
+        spec = self.frontend(x)
+        return self.layers(spec)
 
 
 
