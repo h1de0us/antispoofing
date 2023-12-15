@@ -199,7 +199,8 @@ class RawNet2(nn.Module):
 
         self.bn = nn.BatchNorm1d(filters[1])
         self.GRU = nn.GRU(input_size=filters[1], hidden_size=gru_hidden, num_layers=gru_layers, batch_first=True)
-        self.fc = nn.Linear(gru_hidden, 2)
+        self.fc = nn.Linear(gru_hidden, gru_hidden)
+        self.out = nn.Linear(gru_hidden, 2)
 
 
     def forward(self, x):
@@ -220,6 +221,7 @@ class RawNet2(nn.Module):
             x = F.leaky_relu(x, negative_slope=0.3)
         x, _ = self.GRU(x.view(x.shape[0], -1, x.shape[1]))
         x = self.fc(x[:, -1, :])
+        x = self.out(x)
         # x = F.softmax(x, dim=1)
         return {
             "bonafide_scores": x[:, 1],
