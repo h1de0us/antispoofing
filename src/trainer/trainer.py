@@ -15,6 +15,7 @@ from src.logger.utils import plot_spectrogram_to_buf
 from src.utils import inf_loop, MetricTracker
 
 from src.model import RawNet2
+from src.metric import EER
 
 
 class Trainer(BaseTrainer):
@@ -50,11 +51,13 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = 50
 
+        # we do not add EER for train metrics, because we calculate it on the whole dataset
         self.train_metrics = MetricTracker(
-            "loss", "grad norm", *[m.name for m in self.metrics], writer=self.writer
+            "loss", "grad norm", writer=self.writer
         )
+        # we do not add EER for train metrics, because we calculate it on the whole dataset
         self.evaluation_metrics = MetricTracker(
-            "loss", *[m.name for m in self.metrics], writer=self.writer
+            "loss", writer=self.writer
         )
 
 
@@ -132,9 +135,9 @@ class Trainer(BaseTrainer):
             if batch_idx >= self.len_epoch:
                 break
         log = last_train_metrics
-        for met in self.train_metrics:
-            log.update(met.name, met(bonafide_scores.flatten(), other_scores.flatten()))
-
+        train_eer = EER()(bonafide_scores.flatten(), other_scores.flatten())
+        self.writer.add_scalar("train_EER", train_eer)
+        log.update({"train_EER": train_eer})
 
         for part, dataloader in self.evaluation_dataloaders.items():
             val_log = self._evaluation_epoch(epoch, part, dataloader)
@@ -161,8 +164,6 @@ class Trainer(BaseTrainer):
                 self.lr_scheduler.step()
 
         metrics.update("loss", batch["loss"].item())
-        # for met in self.metrics:
-        #     metrics.update(met.name, met(**batch))
         return batch
 
     def _evaluation_epoch(self, epoch, part, dataloader):
@@ -174,6 +175,9 @@ class Trainer(BaseTrainer):
         """
         self.model.eval()
         self.evaluation_metrics.reset()
+
+        bonafide_scores = None 
+        other_scores = None 
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                     enumerate(dataloader),
@@ -185,13 +189,25 @@ class Trainer(BaseTrainer):
                     is_train=False,
                     metrics=self.evaluation_metrics,
                 )
+                if bonafide_scores is None:
+                    bonafide_scores = batch["bonafide_scores"]
+                else:
+                    bonafide_scores = torch.cat([bonafide_scores, batch["bonafide_scores"]], dim=0)
+                if other_scores is None:
+                    other_scores = batch["other_scores"]
+                else:
+                    other_scores = torch.cat([other_scores, batch["other_scores"]], dim=0)
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
 
         # add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins="auto")
-        return self.evaluation_metrics.result()
+        result = self.evaluation_metrics.result()
+        eer = EER()(bonafide_scores.flatten(), other_scores.flatten())
+        self.writer.add_scalar(f"{part}_EER", eer)
+        result.update({f"EER": eer})
+        return result
 
     def _progress(self, batch_idx):
         base = "[{}/{} ({:.0f}%)]"
