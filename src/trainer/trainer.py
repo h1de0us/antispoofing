@@ -106,13 +106,13 @@ class Trainer(BaseTrainer):
                 else:
                     raise e
             if bonafide_scores is None:
-                bonafide_scores = batch["bonafide_scores"].unsqueeze(0)
+                bonafide_scores = batch["bonafide_scores"]
             else:
-                bonafide_scores = torch.cat([bonafide_scores, batch["bonafide_scores"].unsqueeze(0)], dim=0)
+                bonafide_scores = torch.cat([bonafide_scores, batch["bonafide_scores"]], dim=0)
             if other_scores is None:
-                other_scores = batch["other_scores"].unsqueeze(0)
+                other_scores = batch["other_scores"]
             else:
-                other_scores = torch.cat([other_scores, batch["other_scores"].unsqueeze(0)], dim=0)
+                other_scores = torch.cat([other_scores, batch["other_scores"]], dim=0)
             self.train_metrics.update("grad norm", self.get_grad_norm())
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
