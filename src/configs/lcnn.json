@@ -9,7 +9,7 @@
     },
     "data": {
       "train": {
-        "batch_size": 32,
+        "batch_size": 8,
         "num_workers": 5,
         "datasets": [
           {
@@ -22,7 +22,7 @@
         ]
       },
       "dev": {
-        "batch_size": 32,
+        "batch_size": 8,
         "num_workers": 5,
         "datasets": [
           {
@@ -35,7 +35,7 @@
         ]
       },
       "eval": {
-        "batch_size": 32,
+        "batch_size": 8,
         "num_workers": 5,
         "datasets": [
           {
