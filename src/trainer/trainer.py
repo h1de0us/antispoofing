@@ -88,6 +88,7 @@ class Trainer(BaseTrainer):
         self.writer.add_scalar("epoch", epoch)
         bonafide_scores = None # torch.tensor([]).unsqueeze(0)
         other_scores = None # torch.tensor([]).unsqueeze(0)
+        labels = None
 
         for batch_idx, batch in enumerate(
                 tqdm(self.train_dataloader, desc="train", total=self.len_epoch)
@@ -116,6 +117,11 @@ class Trainer(BaseTrainer):
                 other_scores = batch["other_scores"]
             else:
                 other_scores = torch.cat([other_scores, batch["other_scores"]], dim=0)
+            
+            if labels is None:
+                labels = batch["labels"]
+            else:
+                labels = torch.cat([labels, batch["labels"]], dim=0)
             self.train_metrics.update("grad norm", self.get_grad_norm())
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
@@ -135,7 +141,7 @@ class Trainer(BaseTrainer):
             if batch_idx >= self.len_epoch:
                 break
         log = last_train_metrics
-        train_eer = EER()(bonafide_scores.flatten(), other_scores.flatten())
+        train_eer = EER()(bonafide_scores.flatten()[labels == 0], other_scores.flatten()[labels == 1])
         self.writer.add_scalar("train_EER", train_eer)
         log.update({"train_EER": train_eer})
 
@@ -178,6 +184,7 @@ class Trainer(BaseTrainer):
 
         bonafide_scores = None 
         other_scores = None 
+        labels = None
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                     enumerate(dataloader),
@@ -197,6 +204,10 @@ class Trainer(BaseTrainer):
                     other_scores = batch["other_scores"]
                 else:
                     other_scores = torch.cat([other_scores, batch["other_scores"]], dim=0)
+                if labels is None:
+                    labels = batch["labels"]
+                else:
+                    labels = torch.cat([labels, batch["labels"]], dim=0)
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
 
@@ -204,7 +215,7 @@ class Trainer(BaseTrainer):
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins="auto")
         result = self.evaluation_metrics.result()
-        eer = EER()(bonafide_scores.flatten(), other_scores.flatten())
+        eer = EER()(bonafide_scores.flatten()[labels == 0], other_scores.flatten()[labels == 1])
         self.writer.add_scalar(f"{part}_EER", eer)
         result.update({f"EER": eer})
         return result
