@@ -12,6 +12,8 @@ from src.utils import ROOT_PATH
 from src.utils.object_loading import get_dataloaders
 from src.utils.parse_config import ConfigParser
 
+import torchaudio
+
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
 
 
@@ -43,16 +45,48 @@ def main(config, out_file):
     results = []
 
     with torch.no_grad():
-        for batch_num, batch in enumerate(tqdm(dataloaders["test"])):
-            batch = Trainer.move_batch_to_device(batch, device)
-            output = model(**batch)
-            if type(output) is dict:
-                batch.update(output)
-            else:
-                batch["logits"] = output
-            # TODO: some logic here
-    with Path(out_file).open("w") as f:
-        json.dump(results, f, indent=2)
+        model.eval()
+        save = ROOT_PATH / 'results'
+        save.mkdir(exist_ok=True, parents=True)
+            
+        for i in range(1, 6):
+            path = ROOT_PATH / 'test_data' / f'audio_{i}.wav'
+            audio_tensor, sr = torchaudio.load(path)
+            audio_tensor = audio_tensor[0:1, :]  # remove all channels but the first
+            target_sr = 16000
+            if sr != target_sr:
+                audio_tensor = torchaudio.functional.resample(audio_tensor, sr, target_sr)
+            # spoofs only 
+            batch = {
+                "audios": audio_tensor,
+                "labels": 1
+            }
+            outputs = model(batch['audios'])
+            if type(outputs) is dict:
+                batch.update(outputs)
+            spoof_scores = batch["other_scores"].detach().numpy()
+            prob = torch.nn.functional.softmax(spoof_scores)
+            print(f"Probability of spoof: {prob}")
+        for i in range(6, 11):
+            path = ROOT_PATH / 'test_data' / f'audio_{i}.wav'
+            audio_tensor, sr = torchaudio.load(path)
+            audio_tensor = audio_tensor[0:1, :]  # remove all channels but the first
+            target_sr = 16000
+            if sr != target_sr:
+                audio_tensor = torchaudio.functional.resample(audio_tensor, sr, target_sr)
+            # real only 
+            batch = {
+                "audios": audio_tensor,
+                "labels": 0
+            }
+            outputs = model(batch['audios'])
+            if type(outputs) is dict:
+                batch.update(outputs)
+            bonafide_scores = batch["bonafide_scores"].detach().numpy()
+            prob = torch.nn.functional.softmax(bonafide_scores)
+            print(f"Probability of real voice: {prob}")
+
+            
 
 
 if __name__ == "__main__":
