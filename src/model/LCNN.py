@@ -109,8 +109,8 @@ class LCNN(nn.Module):
             spec = layer(spec)
 
         return {
-            "bonafide_scores": spec[:, 1],
-            "other_scores": spec[:, 0],
+            "bonafide_scores": spec[:, 0],
+            "other_scores": spec[:, 1],
             "logits": spec
         }
 
