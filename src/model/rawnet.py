@@ -154,6 +154,7 @@ class ResBlock(nn.Module):
         self.bn2 = nn.BatchNorm1d(out_channels)
         self.activation2 = nn.LeakyReLU(negative_slope=0.3)
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+
         self.max_pooling = nn.MaxPool1d(kernel_size=3)
         self.fms = nn.Linear(out_channels, out_channels) # wow so-called linear ATTENTION
 
@@ -166,8 +167,14 @@ class ResBlock(nn.Module):
         x = self.activation2(x)
         x = self.conv2(x)
         x = self.max_pooling(x)
-        x = self.fms(x.view(x.shape[0], -1, x.shape[1]))
-        x = x.view(x.shape[0], -1, x.shape[1])
+        # res block output, then we apply FMS
+        # print(x.shape)
+        x_hat = F.adaptive_avg_pool1d(x, 1)
+        # print(x_hat.shape)
+        x_hat = self.fms(x_hat.view(x_hat.shape[0], -1))
+        x_hat = F.sigmoid(x_hat)
+        # print(x.shape, x_hat.shape)
+        x = x * x_hat.unsqueeze(-1) + x
         return x
     
 class RawNet2(nn.Module):
