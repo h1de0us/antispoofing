@@ -34,7 +34,6 @@ To train a RawNet2 model, run
 python3 train.py -c src/configs/rawnet.py
 ```
 
-Test script is provided, but there is no checkpoint yet, so you cannot actually test the trained models :(
 
 ## Credits
 
